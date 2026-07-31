@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LAN Chat</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ── Dark Theme (default) — Black & Red ── */
+    :root, [data-theme="dark"] {
+      --bg-primary: #000000;
+      --bg-secondary: #0a0a0a;
+      --bg-card: #111111;
+      --bg-input: #0a0a0a;
+      --accent: #dc2626;
+      --accent-hover: #b91c1c;
+      --accent-glow: rgba(220, 38, 38, 0.3);
+      --text-primary: #f1f1f1;
+      --text-secondary: #a1a1a1;
+      --text-muted: #666666;
+      --border: rgba(255, 255, 255, 0.08);
+      --msg-own: linear-gradient(135deg, #dc2626, #991b1b);
+      --msg-other: #1a1a1a;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --system-msg-bg: rgba(255, 255, 255, 0.05);
+      --card-shadow: rgba(220, 38, 38, 0.1);
+      --h1-gradient: linear-gradient(135deg, #f1f1f1, #dc2626);
+      --scrollbar-thumb: #333333;
+    }
+
+    /* ── Light Theme ── */
+    [data-theme="light"] {
+      --bg-primary: #f8f9fb;
+      --bg-secondary: #ffffff;
+      --bg-card: #ffffff;
+      --bg-input: #f1f3f5;
+      --accent: #dc2626;
+      --accent-hover: #b91c1c;
+      --accent-glow: rgba(220, 38, 38, 0.12);
+      --text-primary: #1a1a1a;
+      --text-secondary: #555555;
+      --text-muted: #999999;
+      --border: rgba(0, 0, 0, 0.1);
+      --msg-own: linear-gradient(135deg, #dc2626, #b91c1c);
+      --msg-other: #f0f0f0;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --system-msg-bg: rgba(0, 0, 0, 0.04);
+      --card-shadow: rgba(0, 0, 0, 0.08);
+      --h1-gradient: linear-gradient(135deg, #1a1a1a, #dc2626);
+      --scrollbar-thumb: #cccccc;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      height: 100vh;
+      overflow: hidden;
+      transition: background 0.35s ease, color 0.35s ease;
+    }
+
+    /* Smooth theme transitions on all themed elements */
+    .join-screen, .join-card, .join-card input, .chat-header,
+    .sidebar, .chat-input, .chat-input input, .message .bubble,
+    .system-msg span, .online-badge {
+      transition: background 0.35s ease, color 0.35s ease,
+                  border-color 0.35s ease, box-shadow 0.35s ease;
+    }
+
+    /* ── Theme Toggle Switch ── */
+    .theme-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .theme-toggle .toggle-icon {
+      font-size: 16px;
+      transition: opacity 0.3s;
+    }
+
+    .theme-toggle .toggle-track {
+      width: 44px;
+      height: 24px;
+      background: var(--border);
+      border-radius: 12px;
+      position: relative;
+      transition: background 0.3s ease;
+      border: 1px solid var(--border);
+    }
+
+    .theme-toggle .toggle-track::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 18px;
+      height: 18px;
+      background: var(--accent);
+      border-radius: 50%;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                  background 0.3s ease;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    [data-theme="light"] .theme-toggle .toggle-track::after {
+      transform: translateX(20px);
+    }
+
+    [data-theme="light"] .theme-toggle .toggle-track {
+      background: rgba(220, 38, 38, 0.15);
+    }
+
+    /* ── Join Screen ── */
+    .join-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: var(--bg-primary);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .join-screen::before {
+      content: '';
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, var(--accent-glow), transparent 70%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      animation: pulse-glow 4s ease-in-out infinite;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 0.4; transform: translate(-50%, -50%) scale(1); }
+      50% { opacity: 0.7; transform: translate(-50%, -50%) scale(1.1); }
+    }
+
+    .join-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 48px 40px;
+      width: 400px;
+      max-width: 90vw;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 25px 50px var(--card-shadow);
+      animation: card-enter 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes card-enter {
+      from { opacity: 0; transform: translateY(30px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .join-card .logo {
+      font-size: 48px;
+      margin-bottom: 8px;
+    }
+
+    .join-card h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      background: var(--h1-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .join-card p {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+
+    .join-card input {
+      width: 100%;
+      padding: 14px 18px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text-primary);
+      font-size: 15px;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      margin-bottom: 16px;
+    }
+
+    .join-card input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .join-card button {
+      width: 100%;
+      padding: 14px;
+      background: var(--msg-own);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.2s;
+    }
+
+    .join-card button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px var(--accent-glow);
+    }
+
+    .join-card button:active { transform: translateY(0); }
+
+    /* ── Chat Screen ── */
+    .chat-screen {
+      display: none;
+      height: 100vh;
+      flex-direction: column;
+    }
+
+    .chat-screen.active { display: flex; }
+    .join-screen.hidden { display: none; }
+
+    /* Header */
+    .chat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .chat-header .title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .chat-header .title span {
+      font-size: 22px;
+    }
+
+    .chat-header h2 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .online-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      color: var(--success);
+      font-weight: 500;
+    }
+
+    .online-badge .dot {
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+      animation: blink 2s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* Main area */
+    .chat-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 220px;
+      background: var(--bg-secondary);
+      border-right: 1px solid var(--border);
+      padding: 20px 16px;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .sidebar h3 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+
+    .user-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin-bottom: 4px;
+      transition: background 0.15s;
+      animation: fade-in 0.3s ease;
+    }
+
+    .user-item:hover { background: rgba(124, 58, 237, 0.08); }
+
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateX(-10px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .user-item span {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Messages area */
+    .messages-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .messages::-webkit-scrollbar { width: 6px; }
+    .messages::-webkit-scrollbar-track { background: transparent; }
+    .messages::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+
+    /* Message bubbles */
+    .message {
+      display: flex;
+      flex-direction: column;
+      max-width: 65%;
+      animation: msg-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes msg-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.own { align-self: flex-end; align-items: flex-end; }
+    .message.other { align-self: flex-start; align-items: flex-start; }
+
+    .message .meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      padding: 0 4px;
+    }
+
+    .message .bubble {
+      padding: 10px 16px;
+      border-radius: 18px;
+      font-size: 14px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    .message.own .bubble {
+      background: var(--msg-own);
+      color: white;
+      border-bottom-right-radius: 6px;
+    }
+
+    .message.other .bubble {
+      background: var(--msg-other);
+      color: var(--text-primary);
+      border-bottom-left-radius: 6px;
+    }
+
+    .message .time {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      padding: 0 4px;
+    }
+
+    /* System messages */
+    .system-msg {
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 8px 0;
+      animation: msg-in 0.3s ease;
+    }
+
+    .system-msg span {
+      background: var(--system-msg-bg);
+      padding: 4px 14px;
+      border-radius: 12px;
+    }
+
+    /* Typing indicator */
+    .typing-indicator {
+      padding: 0 24px 4px;
+      font-size: 12px;
+      color: var(--text-muted);
+      height: 22px;
+      font-style: italic;
+      flex-shrink: 0;
+    }
+
+    /* Input bar */
+    .chat-input {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 24px;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .chat-input input[type="text"] {
+      flex: 1;
+      padding: 14px 18px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      color: var(--text-primary);
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .chat-input input[type="text"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .chat-input .input-btn {
+      width: 48px;
+      height: 48px;
+      background: var(--msg-own);
+      border: none;
+      border-radius: 14px;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s, box-shadow 0.2s;
+      flex-shrink: 0;
+    }
+
+    .chat-input .input-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px var(--accent-glow);
+    }
+
+    .chat-input .input-btn:active { transform: translateY(0); }
+
+    .chat-input .attach-btn {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 22px;
+    }
+    .chat-input .folder-btn {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 20px;
+    }
+    .chat-input .folder-btn:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .chat-input .attach-btn:hover {
+      color: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    #fileInput, #folderInput { display: none; }
+
+    /* File preview bar */
+    .file-preview-bar .folder-file-count {
+      font-size: 11px; color: var(--text-muted); font-style: italic;
+    }
+
+    .file-preview-bar {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 24px;
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+      animation: msg-in 0.2s ease;
+    }
+    .file-preview-bar.active { display: flex; }
+    .file-preview-bar .file-info {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      min-width: 0;
+    }
+    .file-preview-bar .file-icon { font-size: 24px; flex-shrink: 0; }
+    .file-preview-bar .file-details { min-width: 0; }
+    .file-preview-bar .file-name {
+      font-size: 13px; font-weight: 500; color: var(--text-primary);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .file-preview-bar .file-size { font-size: 11px; color: var(--text-muted); }
+    .file-preview-bar .cancel-btn {
+      background: none; border: none; color: var(--text-muted);
+      font-size: 20px; cursor: pointer; padding: 4px;
+      transition: color 0.15s;
+    }
+    .file-preview-bar .cancel-btn:hover { color: var(--danger); }
+    .file-preview-bar .send-file-btn {
+      padding: 8px 18px; background: var(--msg-own); border: none;
+      border-radius: 10px; color: white; font-size: 13px;
+      font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif;
+      transition: transform 0.15s, box-shadow 0.2s;
+    }
+    .file-preview-bar .send-file-btn:hover {
+      transform: translateY(-1px); box-shadow: 0 4px 16px var(--accent-glow);
+    }
+    .file-preview-bar .send-file-btn:disabled {
+      opacity: 0.5; cursor: not-allowed; transform: none;
+    }
+
+    /* File bubble styles */
+    .file-bubble {
+      display: flex; flex-direction: column; gap: 8px;
+      padding: 12px 16px; border-radius: 18px; max-width: 320px;
+      word-break: break-word;
+    }
+    .message.own .file-bubble {
+      background: var(--msg-own); color: white;
+      border-bottom-right-radius: 6px;
+    }
+    .message.other .file-bubble {
+      background: var(--msg-other); color: var(--text-primary);
+      border-bottom-left-radius: 6px;
+    }
+    .file-bubble img {
+      max-width: 100%; max-height: 260px; border-radius: 10px;
+      object-fit: cover; cursor: pointer;
+    }
+    .file-bubble video {
+      max-width: 100%; max-height: 260px; border-radius: 10px;
+    }
+    .file-bubble audio { width: 100%; height: 36px; }
+    .file-bubble .file-download {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px; border-radius: 8px;
+      background: rgba(255,255,255,0.08);
+      text-decoration: none; color: inherit;
+      transition: background 0.15s;
+    }
+    .message.other .file-bubble .file-download {
+      background: rgba(0,0,0,0.05);
+    }
+    .file-bubble .file-download:hover {
+      background: rgba(255,255,255,0.15);
+    }
+    .message.other .file-bubble .file-download:hover {
+      background: rgba(0,0,0,0.1);
+    }
+    .file-download .dl-icon { font-size: 28px; }
+    .file-download .dl-info { min-width: 0; }
+    .file-download .dl-name {
+      font-size: 13px; font-weight: 500;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      max-width: 200px; display: block;
+    }
+    .file-download .dl-size { font-size: 11px; opacity: 0.7; }
+
+    /* Upload progress */
+    .upload-progress {
+      width: 100%; height: 4px; background: rgba(255,255,255,0.15);
+      border-radius: 2px; overflow: hidden; margin-top: 4px;
+    }
+    .upload-progress .bar {
+      height: 100%; background: #22c55e; border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    /* Responsive */
+    @media (max-width: 700px) {
+      .sidebar { display: none; }
+      .message { max-width: 85%; }
+      .chat-header { padding: 14px 16px; }
+      .messages { padding: 16px; }
+      .chat-input { padding: 12px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Join Screen -->
+  <div class="join-screen" id="joinScreen">
+    <div class="join-card">
+      <div class="logo">💬</div>
+      <h1>LAN Chat</h1>
+      <p>Join the conversation on your local network</p>
+      <input type="text" id="usernameInput" placeholder="Enter your name..." maxlength="20" autocomplete="off">
+      <button id="joinBtn">Join Chat</button>
+      <div class="theme-toggle" id="joinThemeToggle" style="justify-content:center;margin-top:20px;">
+        <span class="toggle-icon">🌙</span>
+        <div class="toggle-track"></div>
+        <span class="toggle-icon">☀️</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Screen -->
+  <div class="chat-screen" id="chatScreen">
+    <div class="chat-header">
+      <div class="title">
+        <span>💬</span>
+        <h2>LAN Chat</h2>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <div class="theme-toggle" id="chatThemeToggle">
+          <span class="toggle-icon">🌙</span>
+          <div class="toggle-track"></div>
+          <span class="toggle-icon">☀️</span>
+        </div>
+        <div class="online-badge">
+          <div class="dot"></div>
+          <span id="onlineCount">0 online</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-body">
+      <div class="sidebar">
+        <h3>Online Users</h3>
+        <div id="userList"></div>
+      </div>
+
+      <div class="messages-area">
+        <div class="messages" id="messages"></div>
+        <div class="typing-indicator" id="typingIndicator"></div>
+        <div class="file-preview-bar" id="filePreviewBar">
+          <div class="file-info">
+            <span class="file-icon" id="previewIcon">📄</span>
+            <div class="file-details">
+              <div class="file-name" id="previewName"></div>
+              <div class="file-size" id="previewSize"></div>
+            </div>
+          </div>
+          <button class="cancel-btn" id="cancelFileBtn">✕</button>
+          <button class="send-file-btn" id="sendFileBtn">Send File</button>
+        </div>
+        <div class="chat-input">
+          <input type="file" id="fileInput">
+          <input type="file" id="folderInput" webkitdirectory directory multiple>
+          <button class="input-btn attach-btn" id="attachBtn" title="Send a file">📎</button>
+          <button class="input-btn folder-btn" id="folderBtn" title="Send a folder">📁</button>
+          <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off">
+          <button class="input-btn" id="sendBtn">➤</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script>
+    const socket = io();
+
+    // Elements
+    const joinScreen = document.getElementById('joinScreen');
+    const chatScreen = document.getElementById('chatScreen');
+    const usernameInput = document.getElementById('usernameInput');
+    const joinBtn = document.getElementById('joinBtn');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const messagesDiv = document.getElementById('messages');
+    const onlineCount = document.getElementById('onlineCount');
+    const userList = document.getElementById('userList');
+    const typingIndicator = document.getElementById('typingIndicator');
+
+    let myUsername = '';
+    let typingTimeout = null;
+
+    // Color palette for avatars
+    const avatarColors = [
+      '#dc2626', '#b91c1c', '#ef4444', '#f97316', '#e11d48',
+      '#be123c', '#c2410c', '#ea580c', '#991b1b', '#f43f5e'
+    ];
+
+    function getColor(name) {
+      let hash = 0;
+      for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+      return avatarColors[Math.abs(hash) % avatarColors.length];
+    }
+
+    // Join chat
+    function join() {
+      const name = usernameInput.value.trim();
+      if (!name) return;
+      myUsername = name;
+      socket.emit('join', name);
+      joinScreen.classList.add('hidden');
+      chatScreen.classList.add('active');
+      messageInput.focus();
+    }
+
+    joinBtn.addEventListener('click', join);
+    usernameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') join(); });
+
+    // Send message
+    function sendMessage() {
+      const msg = messageInput.value.trim();
+      if (!msg) return;
+      socket.emit('chat-message', msg);
+      socket.emit('stop-typing');
+      messageInput.value = '';
+      messageInput.focus();
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+    // ── File Sharing ──
+    const fileInput = document.getElementById('fileInput');
+    const attachBtn = document.getElementById('attachBtn');
+    const filePreviewBar = document.getElementById('filePreviewBar');
+    const previewIcon = document.getElementById('previewIcon');
+    const previewName = document.getElementById('previewName');
+    const previewSize = document.getElementById('previewSize');
+    const cancelFileBtn = document.getElementById('cancelFileBtn');
+    const sendFileBtn = document.getElementById('sendFileBtn');
+
+    let selectedFile = null;
+
+    const fileIcons = {
+      image: '🖼️', video: '🎬', audio: '🎵',
+      pdf: '📕', zip: '📦', code: '💻', doc: '📝', default: '📄'
+    };
+
+    function getFileIcon(mimetype, name) {
+      if (mimetype.startsWith('image/')) return fileIcons.image;
+      if (mimetype.startsWith('video/')) return fileIcons.video;
+      if (mimetype.startsWith('audio/')) return fileIcons.audio;
+      if (mimetype === 'application/pdf') return fileIcons.pdf;
+      if (/zip|rar|7z|tar|gz/.test(name)) return fileIcons.zip;
+      if (/\.(js|ts|py|java|c|cpp|html|css|json)$/i.test(name)) return fileIcons.code;
+      if (/\.(doc|docx|txt|rtf|odt)$/i.test(name)) return fileIcons.doc;
+      return fileIcons.default;
+    }
+
+    function formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    const folderInput = document.getElementById('folderInput');
+    const folderBtn = document.getElementById('folderBtn');
+    let isFolder = false;
+    let folderFiles = null;
+
+    attachBtn.addEventListener('click', () => fileInput.click());
+    folderBtn.addEventListener('click', () => folderInput.click());
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      if (file.size > 50 * 1024 * 1024) {
+        alert('File too large! Max 50MB.');
+        fileInput.value = '';
+        return;
+      }
+      isFolder = false;
+      folderFiles = null;
+      selectedFile = file;
+      previewIcon.textContent = getFileIcon(file.type, file.name);
+      previewName.textContent = file.name;
+      previewSize.textContent = formatFileSize(file.size);
+      filePreviewBar.classList.add('active');
+    });
+
+    folderInput.addEventListener('change', () => {
+      const files = folderInput.files;
+      if (!files || files.length === 0) return;
+
+      // Get folder name from the first file's path
+      const firstPath = files[0].webkitRelativePath || '';
+      const folderName = firstPath.split('/')[0] || 'folder';
+
+      let totalSize = 0;
+      for (const f of files) totalSize += f.size;
+
+      isFolder = true;
+      folderFiles = files;
+      selectedFile = null;
+      previewIcon.textContent = '📁';
+      previewName.textContent = folderName;
+      previewSize.textContent = `${files.length} files · ${formatFileSize(totalSize)}`;
+      filePreviewBar.classList.add('active');
+    });
+
+    cancelFileBtn.addEventListener('click', clearFileSelection);
+
+    function clearFileSelection() {
+      selectedFile = null;
+      folderFiles = null;
+      isFolder = false;
+      fileInput.value = '';
+      folderInput.value = '';
+      filePreviewBar.classList.remove('active');
+    }
+
+    async function zipFolder(files) {
+      const zip = new JSZip();
+      for (const file of files) {
+        const relativePath = file.webkitRelativePath || file.name;
+        zip.file(relativePath, file);
+      }
+      return await zip.generateAsync({ type: 'blob' }, (metadata) => {
+        // Progress callback – could update UI if desired
+      });
+    }
+
+    sendFileBtn.addEventListener('click', async () => {
+      if (!selectedFile && !folderFiles) return;
+      sendFileBtn.disabled = true;
+
+      try {
+        let uploadFile;
+
+        if (isFolder && folderFiles) {
+          sendFileBtn.textContent = 'Zipping...';
+          const firstPath = folderFiles[0].webkitRelativePath || '';
+          const folderName = firstPath.split('/')[0] || 'folder';
+          const zipBlob = await zipFolder(folderFiles);
+          uploadFile = new File([zipBlob], `${folderName}.zip`, { type: 'application/zip' });
+        } else {
+          uploadFile = selectedFile;
+        }
+
+        sendFileBtn.textContent = 'Uploading...';
+
+        const formData = new FormData();
+        formData.append('file', uploadFile);
+
+        const res = await fetch('/upload', { method: 'POST', body: formData });
+        if (!res.ok) throw new Error('Upload failed');
+        const data = await res.json();
+
+        socket.emit('file-message', {
+          file: {
+            url: data.url,
+            originalname: data.originalname,
+            size: data.size,
+            mimetype: data.mimetype
+          }
+        });
+      } catch (err) {
+        alert('Upload failed. Please try again.');
+        console.error(err);
+      } finally {
+        sendFileBtn.disabled = false;
+        sendFileBtn.textContent = 'Send File';
+        clearFileSelection();
+      }
+    });
+
+    // Typing indicator
+    messageInput.addEventListener('input', () => {
+      socket.emit('typing');
+      clearTimeout(typingTimeout);
+      typingTimeout = setTimeout(() => socket.emit('stop-typing'), 1500);
+    });
+
+    // Receive messages
+    socket.on('chat-message', (data) => {
+      const isOwn = data.username === myUsername;
+      const div = document.createElement('div');
+      div.className = `message ${isOwn ? 'own' : 'other'}`;
+      div.innerHTML = `
+        ${!isOwn ? `<div class="meta">${escapeHTML(data.username)}</div>` : ''}
+        <div class="bubble">${escapeHTML(data.message)}</div>
+        <div class="time">${data.time}</div>
+      `;
+      messagesDiv.appendChild(div);
+      scrollToBottom();
+    });
+
+    // Receive file messages
+    socket.on('file-message', (data) => {
+      const isOwn = data.username === myUsername;
+      const div = document.createElement('div');
+      div.className = `message ${isOwn ? 'own' : 'other'}`;
+
+      const f = data.file;
+      let contentHTML = '';
+
+      if (f.mimetype.startsWith('image/')) {
+        contentHTML = `<img src="${f.url}" alt="${escapeHTML(f.originalname)}" onclick="window.open('${f.url}','_blank')">`;
+      } else if (f.mimetype.startsWith('video/')) {
+        contentHTML = `<video controls preload="metadata"><source src="${f.url}" type="${f.mimetype}"></video>`;
+      } else if (f.mimetype.startsWith('audio/')) {
+        contentHTML = `<audio controls preload="metadata"><source src="${f.url}" type="${f.mimetype}"></audio>`;
+      } else {
+        const icon = getFileIcon(f.mimetype, f.originalname);
+        contentHTML = `<a class="file-download" href="${f.url}" download="${escapeHTML(f.originalname)}" target="_blank">
+          <span class="dl-icon">${icon}</span>
+          <div class="dl-info">
+            <span class="dl-name">${escapeHTML(f.originalname)}</span>
+            <span class="dl-size">${formatFileSize(f.size)} — Click to download</span>
+          </div>
+        </a>`;
+      }
+
+      div.innerHTML = `
+        ${!isOwn ? `<div class="meta">${escapeHTML(data.username)}</div>` : ''}
+        <div class="file-bubble">${contentHTML}</div>
+        <div class="time">${data.time}</div>
+      `;
+      messagesDiv.appendChild(div);
+      scrollToBottom();
+    });
+
+    // System events
+    socket.on('user-joined', (data) => {
+      addSystemMessage(`${data.username} joined the chat`);
+      onlineCount.textContent = `${data.userCount} online`;
+    });
+
+    socket.on('user-left', (data) => {
+      addSystemMessage(`${data.username} left the chat`);
+      onlineCount.textContent = `${data.userCount} online`;
+    });
+
+    socket.on('user-list', (users) => {
+      userList.innerHTML = '';
+      onlineCount.textContent = `${users.length} online`;
+      users.forEach((name) => {
+        const div = document.createElement('div');
+        div.className = 'user-item';
+        const color = getColor(name);
+        div.innerHTML = `
+          <div class="user-avatar" style="background:${color}">${name[0].toUpperCase()}</div>
+          <span>${escapeHTML(name)}${name === myUsername ? ' (you)' : ''}</span>
+        `;
+        userList.appendChild(div);
+      });
+    });
+
+    socket.on('typing', (username) => {
+      typingIndicator.textContent = `${username} is typing...`;
+    });
+
+    socket.on('stop-typing', () => {
+      typingIndicator.textContent = '';
+    });
+
+    // Helpers
+    function addSystemMessage(text) {
+      const div = document.createElement('div');
+      div.className = 'system-msg';
+      div.innerHTML = `<span>${escapeHTML(text)}</span>`;
+      messagesDiv.appendChild(div);
+      scrollToBottom();
+    }
+
+    function scrollToBottom() {
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function escapeHTML(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // ── Theme Toggle ──
+    function getStoredTheme() {
+      return localStorage.getItem('lan-chat-theme') || 'dark';
+    }
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('lan-chat-theme', theme);
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      applyTheme(current === 'dark' ? 'light' : 'dark');
+    }
+
+    // Apply saved theme on load
+    applyTheme(getStoredTheme());
+
+    // Bind both toggles
+    document.getElementById('joinThemeToggle').addEventListener('click', toggleTheme);
+    document.getElementById('chatThemeToggle').addEventListener('click', toggleTheme);
+
+    // Focus username input on load
+    usernameInput.focus();
+  </script>
+</body>
+</html>

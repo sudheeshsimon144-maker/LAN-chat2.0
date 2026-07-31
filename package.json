@@ -1,0 +1,26 @@
+{
+  "name": "lan-chat",
+  "version": "2.0.0",
+  "description": "LAN Chat Application",
+  "main": "server/server.js",
+  "scripts": {
+    "server": "node server/server.js",
+    "server:dev": "nodemon server/server.js",
+    "client": "cd client && npm run dev",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "install-all": "npm install && cd client && npm install"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "concurrently": "^8.2.2",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.4.0",
+    "multer": "^2.2.0",
+    "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
